@@ -1,10 +1,7 @@
-"""
-Pairs trading backtester for two user-selected stock tickers.
+"""Screen two stock tickers for cointegration and backtest a long/short strategy.
 
-Pipeline: download prices -> Engle-Granger cointegration test -> OLS hedge ratio
--> rolling z-score of the spread -> z-score entry/exit rules -> backtest -> dashboard.
-
-Install: pip install yfinance pandas numpy statsmodels matplotlib
+Compare the strategy with buy-and-hold on later dates. Print a performance
+report and save a PNG of the spread z-score and both equity curves.
 """
 
 import argparse
@@ -316,7 +313,7 @@ def run_pair(prices, formation_days, output, show):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("tickers", nargs="*", metavar="TICKER", help="two Yahoo Finance symbols, in order")
     parser.add_argument("--start", type=date.fromisoformat, help="first date (default: five years before --end)")
     parser.add_argument("--end", type=date.fromisoformat, default=date.today(), help="exclusive end date (default: today)")
