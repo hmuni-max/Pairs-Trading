@@ -1,61 +1,58 @@
-# Pairs-Trading
+# Pairs Trading
 
-Python backtest of a statistical arbitrage pairs trading strategy on Coca-Cola (KO) vs PepsiCo (PEP): Engle-Granger cointegration test, OLS hedge ratio, rolling z-score entry/exit signals, and a performance dashboard.
+Choose two stock tickers and test whether their historical prices support a long/short pairs strategy. Similar businesses can make a sensible pair to investigate. You can also compare companies from different industries. The program uses price history to decide whether to simulate trades.
 
-![Dashboard](pairs_trading_dashboard.png)
+## Run on this Windows computer
 
-## Results (KO/PEP, daily data 2020–2024)
+Double-click **Run Pairs Trading.cmd** in File Explorer. Enter the first and second Yahoo Finance tickers at the prompts. Press Enter at both prompts to try Coca-Cola (`KO`) and PepsiCo (`PEP`). The launcher uses the installed Python environment, prints the results, and opens the saved dashboard.
 
-- **Cointegration:** the Engle-Granger p-value is 0.577, so the null hypothesis of no cointegration is not rejected. The pair is not statistically supported as mean-reverting over this sample.
-- **Performance:** the strategy returned +3.6% (Sharpe 0.16) versus +68.3% (Sharpe 0.70) for buy-and-hold KO, before transaction costs.
-- **Interpretation:** the spread often stayed far from its rolling mean for months, which is consistent with drift rather than reversion. The signal logic works as intended, but this pair does not satisfy the assumption the strategy relies on.
+You can also run a specific pair from PowerShell in this folder.
 
-## How it works
-
-1. **Data:** adjusted daily closes for both tickers from Yahoo Finance (`yfinance`), aligned on common trading days.
-2. **Cointegration:** Engle-Granger two-step test (`statsmodels.tsa.stattools.coint`). The null hypothesis is that the pair is *not* cointegrated.
-3. **Hedge ratio:** OLS regression of KO on PEP (with intercept). The slope β is the number of PEP shares that hedge one KO share, giving the spread `KO − β × PEP` (β = 0.338 here).
-4. **Signal:** rolling 60-day z-score of the spread.
-   - Long the spread (buy KO, sell PEP) when z < −1.5
-   - Short the spread (sell KO, buy PEP) when z > +1.5
-   - Close the trade when z crosses back over 0
-5. **Backtest:** positions are decided at the close of day *t* and earn returns from day *t+1*, so the signal has no look-ahead. Each leg is weighted by its share of gross exposure.
-6. **Metrics:** total return, annualised return, annualised volatility, Sharpe ratio (risk-free rate = 0) and max drawdown, compared against buy-and-hold KO.
-
-## Run it
-
-```bash
-pip install -r requirements.txt
-python pairs_trading.py
+```powershell
+& ".\Run Pairs Trading.cmd" XOM CVX
 ```
 
-This prints the cointegration test, hedge ratio, trade count and performance table, and saves `pairs_trading_dashboard.png`.
+Use the exchange suffix for overseas listings, such as `ULVR.L` or `7203.T`. Share classes use Yahoo's spelling, such as `BRK-B`. The first ticker is the benchmark and determines the currency for the backtest.
 
-## Configuration
+## Run in a separate Python installation
 
-All parameters sit at the top of `pairs_trading.py`:
+With Python 3.12, run these commands from the project folder. An internet connection is needed to download prices.
 
-| Parameter | Default | Meaning |
-|---|---|---|
-| `TICKER_A`, `TICKER_B` | `KO`, `PEP` | The pair (A is regressed on B) |
-| `START_DATE`, `END_DATE` | 2020-01-01, 2025-01-01 | Sample period |
-| `WINDOW` | 60 | Rolling window (trading days) for z-score mean and std |
-| `ENTRY_Z` | 1.5 | Open a trade when \|z\| exceeds this |
-| `EXIT_Z` | 0.0 | Close the trade when z crosses this level |
-| `ALPHA` | 0.05 | Significance level for the cointegration test |
+```shell
+python -m venv .venv
+```
 
-## Limitations
+On Windows, install the packages into that environment.
 
-- **In-sample hedge ratio.** The cointegration test and the OLS hedge ratio are fitted on the full sample, so the parameters use information from the future. A stricter test would fit them on a training window (or use a rolling regression) and evaluate out of sample.
-- **No trading frictions.** The backtest ignores transaction costs, slippage and short-borrow fees.
-- **Untuned parameters, one pair.** The window and thresholds are not optimised or validated out of sample, and results from a single pair over one period should not be generalised.
+```powershell
+.\.venv\Scripts\python -m pip install -r requirements.txt
+.\.venv\Scripts\python pairs_trading.py KO PEP
+```
 
-## Possible extensions
+On macOS or Linux, use `.venv/bin/python` for both commands. Run the script without ticker arguments in a terminal to choose the companies interactively.
 
-- Scan a universe of candidate pairs and keep only those that pass the cointegration test
-- Fit the hedge ratio on a training window and report out-of-sample results
-- Add transaction costs and a rolling hedge ratio
+## Dates and output
 
-## Disclaimer
+The default sample covers the five years before today. The start date is inclusive and the end date is exclusive. This command reproduces the date range in the original KO/PEP example.
 
-This project is for educational purposes only and is not investment advice.
+```shell
+python pairs_trading.py KO PEP --start 2020-01-01 --end 2025-01-01 --no-show
+```
+
+The program writes `pairs_KO_PEP.png` in the working directory. Each pair gets its own filename. Use `--output name.png` to keep a separate run for different dates, and `--no-show` to save without opening the image.
+
+## How to read a run
+
+1. **Common price dates.** The program takes split- and dividend-adjusted daily closes from Yahoo Finance. It converts the second stock to the first stock's currency when needed, using historical daily FX quotes. It keeps dates with prices for both stocks and the required exchange rate.
+2. **Formation period.** The first 252 common closes are used for the Engle–Granger cointegration test and the OLS hedge ratio. Use `--formation-days` to change this window (minimum 60). At least three more common closes are needed for evaluation. Ticker order matters because the regression fits the first stock on the second.
+3. **Pair decision.** A formation p-value below 0.05 and a positive hedge ratio enable the long/short simulation. If the pair misses either condition, the report gives the reason, shows zero trades, and still plots the spread and the first stock's buy-and-hold performance. A small p-value is historical evidence of a relationship. That relationship can change.
+4. **Evaluation.** The hedge ratio stays fixed. The strategy tracks the spread (first price minus hedge ratio times second price). It buys the spread below a trailing 60-day z-score of −1.5, sells it short above +1.5, and exits when the score crosses zero. A decision at one close earns the following close-to-close return. The last close ends any remaining trade.
+5. **Performance.** Equity starts at one unit of capital. The table reports total and annualized returns, annualized volatility, Sharpe ratio with a zero risk-free rate, and maximum drawdown. The benchmark holds the first stock over the same dates.
+
+## Example from the original pair
+
+For KO/PEP from January 2020 through December 2024, the first 252 closes produced a formation p-value of about **0.41**. The strategy stayed in cash for the evaluation period. This illustrates how two direct competitors can still fail the screen. Yahoo may revise adjusted historical prices.
+
+![KO and PEP spread and strategy equity during the evaluation period](pairs_trading_dashboard.png)
+
+The simulation assumes fills at the signal close, gross exposure of one unit per unit of capital, and zero interest on cash. Results exclude transaction costs, slippage, and short-borrow fees. For stocks on different exchanges, close times can differ even on a shared calendar date. Trying many combinations increases the chance that some will pass the screen by chance.
