@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Pairs Trading: choose two tickers",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/pairs_trading.py",
+            "cwd": "${workspaceFolder}",
+            "args": ["${input:firstTicker}", "${input:secondTicker}"],
+            "console": "internalConsole",
+            "internalConsoleOptions": "openOnSessionStart",
+            "windows": {
+                "python": "${workspaceFolder}/.venv/Scripts/python.exe"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "firstTicker",
+            "type": "promptString",
+            "description": "First stock ticker (benchmark)",
+            "default": "KO"
+        },
+        {
+            "id": "secondTicker",
+            "type": "promptString",
+            "description": "Second stock ticker (hedge)",
+            "default": "PEP"
+        }
+    ]
+}
