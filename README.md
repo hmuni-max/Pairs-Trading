@@ -17,6 +17,8 @@ Using prices from January 2020 through December 2024, the first 252 shared close
 
 Clone or download the repository, then open a terminal in its folder. These commands use Python 3.12. The program needs internet access to retrieve prices from Yahoo Finance.
 
+Use the [stock ticker guide](TICKERS.md) to find Yahoo Finance symbols for the two companies you want to test. It lists 32 tickers from US, London, and Tokyo listings, shows example pairs, and explains how to enter the symbols and look up other companies.
+
 **Windows (PowerShell)**
 
 ```powershell
